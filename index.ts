@@ -20,7 +20,7 @@ const config = {
       {
         app: "live", // This is the app receiving the stream from OBS
         mode: "push", // Push the stream to YouTube
-        edge: `rtmp://a.rtmp.youtube.com/live2/${STREAM_KEY}`, // Push to YouTube
+        edge: `rtmp://a.rtmp.youtube.com/live2`, // Push to YouTube
         name: "proxy", // The stream name (from OBS)
       },
     ],
