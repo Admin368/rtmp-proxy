@@ -72,7 +72,7 @@ app.get("/", (req, res) => {
     // If there are active sessions, display them
     if (sessions.length > 0) {
         sessions.forEach((session) => {
-            html += `<li>Stream ID: ${session.id}, Stream Path: ${session.streamPath}, Args: ${JSON.stringify(session.args)}</li>`;
+            html += `<li>Stream ID: ${session.id}, Stream Path: ${session.streamPath.slice(0, 10)}***, Args: ${JSON.stringify(session.args)}</li>`;
         });
     }
     else {
