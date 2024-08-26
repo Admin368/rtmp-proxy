@@ -1,49 +1,51 @@
 import NodeMediaServer from "node-media-server";
 import express, { Request, Response } from "express";
 import http from "http";
-import path from "path"; // Required for setting the mediaroot path
+import path from "path";
+import os from "os"; // Required for platform detection
+
+// Detect platform to set FFmpeg path
+const isWindows = os.platform() === "win32";
+const ffmpegPath = isWindows ? "./ffmpeg.exe" : "/usr/bin/ffmpeg"; // Adjust path based on the platform
 
 // Define RTMP server configuration
 const config = {
   rtmp: {
-    port: 4001, // RTMP runs on port 4001
+    port: 4001,
     chunk_size: 60000,
     gop_cache: true,
     ping: 30,
     ping_timeout: 60,
   },
   http: {
-    port: 8000, // HTTP server for HLS and stats (remains on port 8000)
+    port: 8000,
     allow_origin: "*",
-    mediaroot: path.join(__dirname, "media"), // Set a valid media root directory
+    mediaroot: path.join(__dirname, "media"),
   },
   relay: {
-    ffmpeg: "./ffmpeg.exe", // Path to FFmpeg
+    ffmpeg: ffmpegPath, // Use dynamic path
     tasks: [
       {
-        app: "live", // This app receives the stream from OBS
-        mode: "push", // Push the stream to YouTube
-        edge: `rtmp://a.rtmp.youtube.com/live2`, // Push to YouTube RTMP endpoint
-        name: "proxy", // Name of the stream (used in OBS)
+        app: "live",
+        mode: "push",
+        edge: `rtmp://a.rtmp.youtube.com/live2`,
+        name: "proxy",
       },
     ],
   },
 };
 
-// Create the NodeMediaServer instance
 const nms = new NodeMediaServer(config);
 
-// Define the type for a session
+// Same session handling code as before...
 interface Session {
   id: string;
   streamPath: string;
   args: object;
 }
 
-// Store sessions in a global array
 const sessions: Session[] = [];
 
-// Listen for events to track active sessions
 nms.on("prePublish", (id: string, streamPath: string, args: object) => {
   console.log(
     `[NodeEvent on prePublish] id=${id} StreamPath=${streamPath} args=${JSON.stringify(
@@ -57,20 +59,16 @@ nms.on("donePublish", (id: string, streamPath: string, args: object) => {
   console.log(`[NodeEvent on donePublish] id=${id} StreamPath=${streamPath}`);
   const index = sessions.findIndex((session) => session.id === id);
   if (index > -1) {
-    sessions.splice(index, 1); // Remove the session when done
+    sessions.splice(index, 1);
   }
 });
 
-// Start the RTMP server
 nms.run();
 
-// Set up Express server to serve the landing page on port 4000
 const app = express();
 const server = http.createServer(app);
 
-// Define the landing page route to show server status
 app.get("/", (req: Request, res: Response) => {
-  // HTML template displaying server stats and active streams
   let html = `
     <html>
       <head>
@@ -84,7 +82,6 @@ app.get("/", (req: Request, res: Response) => {
         <ul>
   `;
 
-  // If there are active sessions, display them
   if (sessions.length > 0) {
     sessions.forEach((session) => {
       html += `<li>Stream ID: ${
@@ -103,12 +100,9 @@ app.get("/", (req: Request, res: Response) => {
       </body>
     </html>
   `;
-
-  // Send the HTML response
   res.send(html);
 });
 
-// Start the Express server to listen on port 4000
 server.listen(4000, () => {
   console.log("Landing page is available at http://localhost:4000");
 });
