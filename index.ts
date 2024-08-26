@@ -15,13 +15,13 @@ const config = {
     allow_origin: "*",
   },
   relay: {
-    ffmpeg: "./ffmpeg.exe", // Make sure to have FFmpeg installed
+    ffmpeg: "./ffmpeg.exe", // Path to FFmpeg
     tasks: [
       {
-        app: "live",
-        mode: "static", // Forward to YouTube
-        edge: `rtmp://a.rtmp.youtube.com/live2/${STREAM_KEY}`,
-        name: "proxy", // Stream name to use in the source
+        app: "live", // This is the app receiving the stream from OBS
+        mode: "push", // Push the stream to YouTube
+        edge: `rtmp://a.rtmp.youtube.com/live2/${STREAM_KEY}`, // Push to YouTube
+        name: "proxy", // The stream name (from OBS)
       },
     ],
   },
