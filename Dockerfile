@@ -10,10 +10,10 @@ RUN apt-get update && apt-get install -y ffmpeg
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
-# Install dependencies
+# Install all dependencies, including devDependencies
 RUN npm install
 
-# Copy the project to the container
+# Copy the project files into the container
 COPY . .
 
 # Compile TypeScript to JavaScript
@@ -28,7 +28,7 @@ WORKDIR /usr/src/app
 # Install FFmpeg
 RUN apt-get update && apt-get install -y ffmpeg
 
-# Copy only the compiled JavaScript files and necessary files from the build stage
+# Copy only the necessary files from the build stage
 COPY --from=build /usr/src/app/package*.json ./
 COPY --from=build /usr/src/app/dist ./dist
 COPY --from=build /usr/src/app/media ./media

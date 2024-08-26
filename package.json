@@ -1,22 +1,24 @@
 {
   "name": "rtmp-proxy",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "RTMP proxy server for streaming",
+  "main": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node dist/index.js",
     "build": "tsc",
-    "build_run": "node dist/index.js && tsc"
+    "build_run": "npm run build && node dist/index.js",
+    "docker:build": "docker build -t rtmp-proxy .",
+    "docker:run": "docker run -d --name rtmp-proxy -p 4000:4000 -p 4001:4001 rtmp-proxy"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "express": "^4.19.2",
-    "http": "^0.0.1-security",
     "node-media-server": "^2.7.0"
   },
   "devDependencies": {
+    "typescript": "^5.0.0",
     "@types/express": "^4.17.21",
     "@types/node": "^22.5.0",
     "@types/node-media-server": "^2.3.7"
