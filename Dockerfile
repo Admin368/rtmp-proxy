@@ -1,43 +1,24 @@
-# Stage 1: Build the TypeScript app
-FROM node:18 AS build
+# Use an official Node.js runtime as the base image
+FROM node:16
 
-# Set working directory inside the container
-WORKDIR /usr/src/app
+# Set the working directory in the container to /app
+WORKDIR /app
 
-# Install FFmpeg
-RUN apt-get update && apt-get install -y ffmpeg
-
-# Copy package.json and package-lock.json
+# Copy package.json and package-lock.json (if available)
 COPY package*.json ./
 
-# Install all dependencies, including devDependencies
-RUN npm install
+# Install dependencies
+RUN npm install --production
 
-# Copy the project files into the container
-COPY . .
+# Copy the dist folder containing the pre-built index.js and the media folder
+COPY *dist/ ./dist/
+COPY *media/ ./media/
 
-# Compile TypeScript to JavaScript
-RUN npm run build
-
-# Stage 2: Run the application
-FROM node:18
-
-# Set working directory for the second stage
-WORKDIR /usr/src/app
-
-# Install FFmpeg
+# Install FFmpeg on Ubuntu
 RUN apt-get update && apt-get install -y ffmpeg
 
-# Copy only the necessary files from the build stage
-COPY --from=build /usr/src/app/package*.json ./
-COPY --from=build /usr/src/app/dist ./dist
-COPY --from=build /usr/src/app/media ./media
+# Ensure that ffmpeg is installed at /usr/bin/ffmpeg (the path used in index.ts)
+RUN which ffmpeg
 
-# Install production dependencies
-RUN npm install --only=production
-
-# Expose ports
-EXPOSE 4000 4001
-
-# Run the application
+# Set the default command to run the dist/index.js file
 CMD ["node", "dist/index.js"]

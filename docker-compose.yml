@@ -1,0 +1,16 @@
+version: "3.8"
+
+services:
+  rtmp-proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"
+      - "4001:4001"
+      - "8000:8000"
+    volumes:
+      - ./media:/app/media
+    environment:
+      NODE_ENV: production
+    restart: unless-stopped
