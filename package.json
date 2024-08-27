@@ -9,6 +9,7 @@
     "build": "tsc",
     "build_run": "npm run build && node dist/index.js",
     "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
     "docker:run": "docker run -d --name rtmp-proxy -p 4000:4000 -p 4001:4001 rtmp-proxy"
   },
   "author": "",
