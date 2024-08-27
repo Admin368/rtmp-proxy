@@ -11,8 +11,8 @@ COPY package*.json ./
 RUN npm install --production
 
 # Copy the dist folder containing the pre-built index.js and the media folder
-COPY *dist/ ./dist/
-COPY *media/ ./media/
+COPY dist/ ./dist/
+COPY media/ ./media/
 
 # Install FFmpeg on Ubuntu
 RUN apt-get update && apt-get install -y ffmpeg
