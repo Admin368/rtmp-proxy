@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install --production
+RUN yarn install
 
 # Copy the dist folder containing the pre-built index.js and the media folder
 COPY dist/ ./dist/
