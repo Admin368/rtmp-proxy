@@ -1,24 +1,37 @@
-# Use an official Node.js runtime as the base image
-# FROM node:16
-FROM node:20
-# Set the working directory in the container to /app
+# Build stage
+FROM node:20-alpine AS builder
+
+# Set the working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json (if available)
+# Copy package files
 COPY package*.json ./
 
 # Install dependencies
 RUN yarn install
 
-# Copy the dist folder containing the pre-built index.js and the media folder
-COPY dist/ ./dist/
-COPY media/ ./media/
+# Copy source files
+COPY . .
 
-# Install FFmpeg on Ubuntu
-RUN apt-get update && apt-get install -y ffmpeg
+# Build the application
+RUN yarn build
 
-# Ensure that ffmpeg is installed at /usr/bin/ffmpeg (the path used in index.ts)
-RUN which ffmpeg
+# Production stage
+FROM node:20-alpine
 
-# Set the default command to run the dist/index.js file
+# Install FFmpeg using alpine package manager
+RUN apk add --no-cache ffmpeg
+
+WORKDIR /app
+
+# Copy only the necessary files from builder
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/media ./media
+
+# Install only production dependencies
+RUN yarn install --production && \
+    yarn cache clean
+
+# Set the default command
 CMD ["node", "dist/index.js"]
