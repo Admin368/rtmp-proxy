@@ -7,11 +7,12 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN yarn install
+# Install ALL dependencies (including devDependencies)
+RUN yarn install --frozen-lockfile
 
-# Copy source files
-COPY . .
+# Copy source files and config files
+COPY tsconfig.json .
+COPY src ./src
 
 # Build the application
 RUN yarn build
@@ -27,10 +28,9 @@ WORKDIR /app
 # Copy only the necessary files from builder
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/media ./media
 
 # Install only production dependencies
-RUN yarn install --production && \
+RUN yarn install --production --frozen-lockfile && \
     yarn cache clean
 
 # Set the default command
