@@ -1,6 +1,6 @@
 # Use an official Node.js runtime as the base image
-FROM node:16
-
+# FROM node:16
+FROM node:20
 # Set the working directory in the container to /app
 WORKDIR /app
 
@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install --production
+RUN yarn install
 
 # Copy the dist folder containing the pre-built index.js and the media folder
 COPY dist/ ./dist/
