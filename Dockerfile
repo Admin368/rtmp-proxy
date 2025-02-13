@@ -28,6 +28,7 @@ WORKDIR /app
 # Copy only the necessary files from builder
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package*.json ./
+COPY media ./media
 
 # Install only production dependencies
 RUN yarn install --production --frozen-lockfile && \
