@@ -16,7 +16,9 @@ address.
 - **Per-key destinations**, so one server can feed several YouTube channels (or Twitch, or an
   internal ingest).
 
-`docs/V2-ASSESSMENT.md` records what changed on the `v2` branch and why v3 was branched from it.
+Release notes: [`release-notes/v3.md`](release-notes/v3.md) (this release),
+[`release-notes/v2.md`](release-notes/v2.md). `docs/V2-ASSESSMENT.md` records what changed on the
+`v2` branch and why v3 was branched from it.
 
 ## Quick start
 
