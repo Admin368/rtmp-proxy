@@ -1,4 +1,4 @@
-# RTMP Proxy (v3.1)
+# RTMP Proxy (v3.2)
 
 An authenticated RTMP relay in a Docker container. Point OBS (or anything that speaks RTMP) at this
 server, and it forwards the stream on to YouTube — or to any other RTMP ingest you configure.
@@ -15,9 +15,12 @@ address.
 - **Restart button** that restarts the container without needing the Docker socket.
 - **Per-key destinations**, so one server can feed several YouTube channels (or Twitch, or an
   internal ingest).
+- **A monochrome dark dashboard** with one-tap copy fields for the OBS settings, and a layout that
+  works on a phone.
 
-Release notes: [`release-notes/v3.1.md`](release-notes/v3.1.md) (this release),
-[`release-notes/v3.md`](release-notes/v3.md), [`release-notes/v2.md`](release-notes/v2.md). `docs/V2-ASSESSMENT.md` records what changed on the
+Release notes: [`release-notes/v3.2.md`](release-notes/v3.2.md) (this release),
+[`release-notes/v3.1.md`](release-notes/v3.1.md), [`release-notes/v3.md`](release-notes/v3.md),
+[`release-notes/v2.md`](release-notes/v2.md). `docs/V2-ASSESSMENT.md` records what changed on the
 `v2` branch and why v3 was branched from it.
 
 ## Quick start
