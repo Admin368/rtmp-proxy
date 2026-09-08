@@ -1,7 +1,7 @@
 {
   "name": "rtmp-proxy",
-  "version": "1.0.0",
-  "description": "RTMP proxy server for streaming",
+  "version": "3.0.0",
+  "description": "Authenticated RTMP relay with accounts, roles and API keys",
   "main": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -10,7 +10,9 @@
     "build_run": "npm run build && node dist/index.js",
     "docker:build": "docker-compose build",
     "docker:up": "docker-compose up -d",
-    "docker:run": "docker run -d --name rtmp-proxy -p 4000:4000 -p 4001:4001 rtmp-proxy"
+    "docker:run": "docker run -d --name rtmp-proxy --restart unless-stopped -p 4000:4000 -p 4001:4001 -p 4002:4002 -v rtmp-data:/app/data rtmp-proxy",
+    "dev": "tsc && node dist/index.js",
+    "typecheck": "tsc --noEmit"
   },
   "author": "",
   "license": "ISC",

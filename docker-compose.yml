@@ -1,16 +1,37 @@
-version: "3.8"
-
 services:
   rtmp-proxy:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "4000:4000"
-      - "4001:4001"
-      - "4002:4002"
+      - "4000:4000" # dashboard
+      - "4001:4001" # RTMP ingest
+      - "4002:4002" # node-media-server HTTP-FLV
     volumes:
       - ./media:/app/media
+      - rtmp-data:/app/data
     environment:
       NODE_ENV: production
+      # Accounts, API keys and the cookie signing secret are stored in /app/data/db.json.
+      DATA_DIR: /app/data
+
+      # First run only: the creator account. Leave CREATOR_PASSWORD unset and the generated
+      # password is printed once to the container log (`docker compose logs rtmp-proxy`).
+      # CREATOR_USERNAME: creator
+      # CREATOR_PASSWORD: change-me-please
+
+      # Where streams are forwarded when an API key has no destination of its own.
+      DEFAULT_RELAY_EDGE: rtmp://a.rtmp.youtube.com/live2
+
+      # How many API keys a new account may hold. The creator can override this per account.
+      DEFAULT_KEY_QUOTA: "2"
+
+      # Set to true when the dashboard is behind HTTPS so the login cookie gets the Secure flag.
+      # SECURE_COOKIES: "true"
+
+    # The in-app "Restart server" button exits the process; this policy brings it straight back.
+    # Do not change it to "no" or "on-failure" with a retry cap, or the button becomes a stop button.
     restart: unless-stopped
+
+volumes:
+  rtmp-data:
