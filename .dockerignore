@@ -5,4 +5,5 @@ data
 .git
 .dockerignore
 docs
+release-notes
 ffmpeg.exe

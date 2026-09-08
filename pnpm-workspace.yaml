@@ -1,0 +1,7 @@
+# pnpm 11 reads overrides from here, not from package.json.
+#
+# express 4.22.2 pins qs ~6.15, which is still short of the 6.16.0 that fixes
+# GHSA-4mjr-xmp4-gh2g (isBuffer DoS) and the bracket-key comma array-limit bypass.
+# qs 6.16 is API-compatible with 6.15, so lift it for every consumer.
+overrides:
+  qs: ">=6.16.0"
