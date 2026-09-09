@@ -22,6 +22,9 @@ function emptyDatabase(): Database {
   };
 }
 
+/** Set when an environment variable overrode a stored setting, so it can be flushed to disk. */
+let overrodeStoredSettings = false;
+
 function load(): Database {
   fs.mkdirSync(config.dataDir, { recursive: true });
   if (!fs.existsSync(dbPath)) return emptyDatabase();
@@ -40,17 +43,17 @@ function load(): Database {
   // variable given explicitly wins over the stored value, though — otherwise changing
   // DEFAULT_RELAY_EDGE on an existing deployment does nothing and says nothing about why.
   const settings = { ...base.settings, ...(parsed.settings ?? {}) };
-  if (config.explicitlySet.defaultRelayEdge) {
-    if (settings.defaultRelayEdge !== config.defaultRelayEdge) {
-      console.log(
-        `[db] DEFAULT_RELAY_EDGE overrides the stored default: ` +
-          `${settings.defaultRelayEdge} -> ${config.defaultRelayEdge}`
-      );
-    }
+  if (config.explicitlySet.defaultRelayEdge && settings.defaultRelayEdge !== config.defaultRelayEdge) {
+    console.log(
+      `[db] DEFAULT_RELAY_EDGE overrides the stored default: ` +
+        `${settings.defaultRelayEdge} -> ${config.defaultRelayEdge}`
+    );
     settings.defaultRelayEdge = config.defaultRelayEdge;
+    overrodeStoredSettings = true;
   }
-  if (config.explicitlySet.defaultKeyQuota) {
+  if (config.explicitlySet.defaultKeyQuota && settings.defaultKeyQuota !== config.defaultKeyQuota) {
     settings.defaultKeyQuota = config.defaultKeyQuota;
+    overrodeStoredSettings = true;
   }
 
   return {
@@ -63,6 +66,16 @@ function load(): Database {
 }
 
 export const db: Database = load();
+
+// Flush an override straight away. Otherwise db.json keeps claiming the old value until some
+// unrelated write happens, and the file on disk contradicts what the server is actually using.
+if (overrodeStoredSettings) {
+  try {
+    writeNow();
+  } catch (err) {
+    console.error("[db] could not persist the overridden settings:", (err as Error).message);
+  }
+}
 
 let pending: NodeJS.Timeout | null = null;
 
