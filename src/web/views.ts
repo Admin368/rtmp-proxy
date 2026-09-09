@@ -10,13 +10,21 @@ import {
   effectiveKeyQuota,
 } from "../services/users";
 import { escapeHtml, html, joinHtml, raw } from "./html";
-import { ingestUrl, u } from "./urls";
+import { ingestUrl, ingestUrlSecure, rtmpsEnabled, u } from "./urls";
 import { styles } from "./styles";
 
 export interface Flash {
   kind: "ok" | "error" | "secret";
   message: string;
-  secret?: { key: string; ingestUrl: string; streamKey: string };
+  secret?: {
+    key: string;
+    /** Ready-to-paste Server field, API key included. */
+    serverUrl: string;
+    /** What to put in the Stream Key field. */
+    streamKey: string;
+    /** True when the key has its own destination, so the stream name is arbitrary. */
+    streamKeyIsFixed: boolean;
+  };
 }
 
 function layout(title: string, body: string, script = ""): string {
@@ -138,20 +146,36 @@ function flashBanner(flash: Flash | null): string {
   return html`
     <div class="notice secret">
       <strong>${flash.message}</strong>
-      <p class="hint">Copy the key now — it is stored hashed and cannot be shown again.</p>
+      <p class="hint">Copy this now — the key is stored hashed and cannot be shown again.</p>
       ${raw(copyField("API key", flash.secret.key))}
-      <p class="hint">Paste these two into OBS &rarr; Settings &rarr; Stream &rarr; Custom&hellip;</p>
-      ${raw(copyField("Server", flash.secret.ingestUrl))}
-      ${raw(copyField("Stream key", flash.secret.streamKey))}
+      <p class="hint">
+        In OBS &rarr; Settings &rarr; Stream &rarr; Custom&hellip;, paste this into
+        <strong>Server</strong>. It carries your API key, so set it once and leave it.
+      </p>
+      ${raw(copyField("Server", flash.secret.serverUrl))}
+      <p class="hint">
+        Then put ${raw(flash.secret.streamKeyIsFixed
+          ? html`<strong>${flash.secret.streamKey}</strong> in <strong>Stream Key</strong> — this key
+             forwards to a destination you configured, so the value is up to you.`
+          : html`your <strong>destination's own stream key</strong> (the one YouTube gives you) in
+             <strong>Stream Key</strong>. Change it there whenever it changes — you do not need to
+             come back here.`)}
+      </p>
+      <p class="hint">Leave OBS's &ldquo;Use authentication&rdquo; box unchecked.</p>
     </div>
   `;
 }
 
 function connectionCard(data: DashboardData): string {
   const addresses = data.serverAddresses.length ? data.serverAddresses : ["<server-address>"];
-  const fields = addresses.map((addr) =>
-    copyField(addresses.length > 1 ? `Server (${addr})` : "Server", ingestUrl(addr))
-  );
+  const secure = rtmpsEnabled();
+  const fields = addresses.flatMap((addr) => {
+    const label = addresses.length > 1 ? `Server (${addr})` : "Server";
+    const plain = copyField(secure ? `${label} — plain` : label, `${ingestUrl(addr)}?key=<your-api-key>`);
+    return secure
+      ? [copyField(`${label} — encrypted, preferred`, `${ingestUrlSecure(addr)}?key=<your-api-key>`), plain]
+      : [plain];
+  });
 
   const restart = canRestartServer(data.user)
     ? html`
@@ -170,11 +194,22 @@ function connectionCard(data: DashboardData): string {
       </header>
       <div class="body">
         ${joinHtml(fields)}
-        ${raw(copyField("Stream key format", `<stream-name>?key=<your-api-key>`))}
         <p class="hint">
-          If the API key has its own destination, <code>&lt;stream-name&gt;</code> can be anything.
-          Otherwise it must be the destination's stream key, and the feed is forwarded to
-          <code>${db.settings.defaultRelayEdge}</code>.
+          The API key goes in the <strong>Server</strong> field. The <strong>Stream Key</strong>
+          field then holds your destination's own stream key — the one YouTube gives you — so you
+          can change it in OBS whenever it rotates without coming back here. Keys with a
+          destination configured below ignore it and can use any stream name.
+          Unset keys forward to <code>${db.settings.defaultRelayEdge}</code>.
+        </p>
+        <p class="hint">
+          The full URL including your key is shown once, when the key is created or rotated.
+          Leave OBS's &ldquo;Use authentication&rdquo; box unchecked — RTMP only sends those
+          fields in response to a server challenge, which this server does not issue.
+          ${raw(secure
+            ? html`Prefer the <code>rtmps://</code> URL: plain RTMP sends the key in the clear.`
+            : html`Plain RTMP sends the key in the clear, so treat the Server URL as a secret.
+               Set <code>RTMPS_PORT</code>, <code>RTMPS_KEY</code> and <code>RTMPS_CERT</code>
+               to offer an encrypted <code>rtmps://</code> endpoint.`)}
         </p>
       </div>
     </section>

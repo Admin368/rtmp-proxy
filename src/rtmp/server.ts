@@ -1,3 +1,4 @@
+import fs from "fs";
 import NodeMediaServer from "node-media-server";
 import { config } from "../config";
 import { markKeyUsed, resolveKey } from "../services/apiKeys";
@@ -55,7 +56,27 @@ export interface LiveStreamView {
 
 const streams = new Map<string, LiveStream>();
 
+/** Query fields an API key is accepted under, on the server URL or the stream key. */
+const CREDENTIAL_FIELDS = ["key", "token", "apikey", "api_key"];
+
+/** API keys captured from the connect command, by session id, until that session ends. */
+const connectCredentials = new Map<string, string>();
+
 let nms: NodeMediaServer | null = null;
+
+/**
+ * node-media-server's bundled types declare every event as (id, streamPath, args), but the
+ * connect-lifecycle events deliver (id, cmdObj). Subscribe to those through here rather than
+ * casting at each call site.
+ */
+function onConnectEvent(
+  server: NodeMediaServer,
+  event: "preConnect" | "postConnect" | "doneConnect",
+  listener: (id: string, cmdObj: Record<string, unknown>) => void
+): void {
+  type Loose = (event: string, listener: (...args: never[]) => void) => void;
+  (server.on as unknown as Loose)(event, listener as (...args: never[]) => void);
+}
 
 function session(id: string): RtmpSessionLike | undefined {
   if (!nms) return undefined;
@@ -79,7 +100,30 @@ function destinationFor(
   return `${base.replace(/\/+$/, "")}/${streamKey}`;
 }
 
+/**
+ * Resolves the TLS config for rtmps:// ingest, or null when it is off or unusable.
+ * Checks the files here rather than letting node-media-server swallow the read error, so a
+ * misconfigured certificate is a loud startup warning instead of a silently missing listener.
+ */
+function resolveTlsConfig(): { key: string; cert: string; port: number } | null {
+  if (config.rtmpsPort <= 0) return null;
+  if (!config.rtmpsKeyPath || !config.rtmpsCertPath) {
+    console.warn("[rtmp] RTMPS_PORT is set but RTMPS_KEY/RTMPS_CERT are not; rtmps is off");
+    return null;
+  }
+  for (const file of [config.rtmpsKeyPath, config.rtmpsCertPath]) {
+    try {
+      fs.accessSync(file, fs.constants.R_OK);
+    } catch {
+      console.warn(`[rtmp] cannot read ${file}; rtmps is off`);
+      return null;
+    }
+  }
+  return { key: config.rtmpsKeyPath, cert: config.rtmpsCertPath, port: config.rtmpsPort };
+}
+
 export function startRtmpServer(): NodeMediaServer {
+  const ssl = resolveTlsConfig();
   const nmsConfig = {
     logType: 2,
     rtmp: {
@@ -88,6 +132,7 @@ export function startRtmpServer(): NodeMediaServer {
       gop_cache: true,
       ping: 30,
       ping_timeout: 60,
+      ...(ssl ? { ssl } : {}),
     },
     http: {
       port: config.mediaHttpPort,
@@ -101,6 +146,37 @@ export function startRtmpServer(): NodeMediaServer {
 
   nms = new NodeMediaServer(nmsConfig);
 
+  /**
+   * v4: the API key arrives on the Server URL, i.e. the `app` of the connect command —
+   * `rtmp://host:4001/live?key=ABC`. That frees the stream key field to hold the
+   * destination's own key, which a streamer can then change without a dashboard visit.
+   *
+   * This runs before node-media-server reads `cmdObj.app` into `appname`, so it is also the
+   * only chance to strip the credential out. That matters twice over: `appname` is used to
+   * build every stream path, and node-media-server logs the entire connect object.
+   */
+  onConnectEvent(nms, "preConnect", (id, cmdObj) => {
+    const app = typeof cmdObj.app === "string" ? cmdObj.app : "";
+    const queryAt = app.indexOf("?");
+    if (queryAt < 0) return;
+
+    const params = new URLSearchParams(app.slice(queryAt + 1));
+    const secret = firstParam(params, CREDENTIAL_FIELDS);
+    if (secret) connectCredentials.set(id, secret);
+
+    // Scrub every field the credential could have reached. Do this whether or not we found a
+    // recognised field, so a stray query never ends up in a stream path or a log line.
+    cmdObj.app = app.slice(0, queryAt);
+    for (const field of ["tcUrl", "swfUrl", "pageUrl"]) {
+      const value = cmdObj[field];
+      if (typeof value === "string") cmdObj[field] = stripQuery(value);
+    }
+  });
+
+  onConnectEvent(nms, "doneConnect", (id) => {
+    connectCredentials.delete(id);
+  });
+
   nms.on("prePublish", (id: string, streamPath: string, rawArgs: object) => {
     const args = rawArgs as Record<string, unknown>;
     const rtmpSession = session(id);
@@ -113,10 +189,14 @@ export function startRtmpServer(): NodeMediaServer {
     if (!name) return reject("no stream name");
     if (app !== config.rtmpApp) return reject(`unknown application "${app}"`);
 
-    const presented = firstString(args, ["key", "token", "apikey", "api_key"]);
+    // Server URL first (v4), stream key second (the v1-v3 form, still accepted).
+    const fromConnect = connectCredentials.get(id);
+    const presented = fromConnect ?? firstString(args, CREDENTIAL_FIELDS);
     const lookup = resolveKey(presented);
 
-    if (lookup === "missing") return reject("no API key supplied");
+    if (lookup === "missing") {
+      return reject("no API key supplied on the server URL or the stream key");
+    }
     if (lookup === "unknown") return reject("API key not recognised");
     if (lookup === "key-disabled") return reject("API key is paused");
     if (lookup === "user-disabled") return reject("account is disabled");
@@ -125,7 +205,7 @@ export function startRtmpServer(): NodeMediaServer {
     const { key, user } = lookup;
 
     // Strip the credential so it cannot leak into logs or any downstream URL built from args.
-    for (const field of ["key", "token", "apikey", "api_key"]) delete args[field];
+    for (const field of CREDENTIAL_FIELDS) delete args[field];
 
     markKeyUsed(key);
     streams.set(id, {
@@ -270,6 +350,19 @@ function splitStreamPath(streamPath: string): { app: string; name: string } {
 function maskPath(streamPath: string): string {
   const { app, name } = splitStreamPath(streamPath);
   return `/${app}/${maskName(name)}`;
+}
+
+function stripQuery(value: string): string {
+  const at = value.indexOf("?");
+  return at < 0 ? value : value.slice(0, at);
+}
+
+function firstParam(params: URLSearchParams, fields: string[]): string | undefined {
+  for (const field of fields) {
+    const value = params.get(field);
+    if (value && value.trim()) return value.trim();
+  }
+  return undefined;
 }
 
 function firstString(args: Record<string, unknown>, fields: string[]): string | undefined {

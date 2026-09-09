@@ -6,7 +6,7 @@ import { startRtmpServer, shutdownRtmp } from "./rtmp/server";
 import { ensureCreatorAccount } from "./services/users";
 import { databasePath, saveSync } from "./store/db";
 import { createRouter } from "./web/routes";
-import { getServerAddresses, ingestHosts, ingestUrl } from "./web/urls";
+import { getServerAddresses, ingestHosts, ingestUrl, ingestUrlSecure, rtmpsEnabled } from "./web/urls";
 
 function main(): void {
   fs.mkdirSync(config.mediaRoot, { recursive: true });
@@ -37,9 +37,15 @@ function main(): void {
       console.log(`  dashboard:     http://${host}:${config.webPort}${config.basePath}`);
     }
     for (const host of ingestHosts()) {
-      console.log(`  rtmp ingest:   ${ingestUrl(host)}`);
+      console.log(`  rtmp ingest:   ${ingestUrl(host)}?key=<api-key>`);
+      if (rtmpsEnabled()) {
+        console.log(`  rtmps ingest:  ${ingestUrlSecure(host)}?key=<api-key>  (preferred)`);
+      }
     }
-    console.log("  stream key:    <stream-name>?key=<api-key>");
+    console.log("  stream key:    <destination stream key>");
+    if (!rtmpsEnabled()) {
+      console.log("  (plain rtmp sends the api key in the clear; see RTMPS_PORT/RTMPS_KEY/RTMPS_CERT)");
+    }
     if (!config.publicHost) {
       console.log("  (set PUBLIC_HOST to the address encoders should use, e.g. stream.example.com)");
     }

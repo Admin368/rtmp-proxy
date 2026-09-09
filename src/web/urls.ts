@@ -39,3 +39,22 @@ export function ingestHosts(): string[] {
 export function ingestUrl(host: string): string {
   return `rtmp://${host}:${config.rtmpPort}/${config.rtmpApp}`;
 }
+
+/** True when an rtmps:// listener is configured (see config.rtmpsPort). */
+export function rtmpsEnabled(): boolean {
+  return config.rtmpsPort > 0 && !!config.rtmpsKeyPath && !!config.rtmpsCertPath;
+}
+
+export function ingestUrlSecure(host: string): string {
+  return `rtmps://${host}:${config.rtmpsPort}/${config.rtmpApp}`;
+}
+
+/**
+ * The URL an encoder puts in its "Server" field. From v4 the API key rides here as a query
+ * argument rather than on the stream key, so the stream key field is free to hold the
+ * destination's own key and can be changed without touching the dashboard.
+ */
+export function serverUrlWithKey(host: string, secret: string): string {
+  const base = rtmpsEnabled() ? ingestUrlSecure(host) : ingestUrl(host);
+  return `${base}?key=${secret}`;
+}

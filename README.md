@@ -1,4 +1,4 @@
-# RTMP Proxy (v3.2.1)
+# RTMP Proxy (v4)
 
 An authenticated RTMP relay in a Docker container. Point OBS (or anything that speaks RTMP) at this
 server, and it forwards the stream on to YouTube — or to any other RTMP ingest you configure.
@@ -18,8 +18,9 @@ address.
 - **A monochrome dark dashboard** with one-tap copy fields for the OBS settings, and a layout that
   works on a phone.
 
-Release notes: [`release-notes/v3.2.1.md`](release-notes/v3.2.1.md) (this release),
-[`release-notes/v3.2.md`](release-notes/v3.2.md), [`release-notes/v3.1.md`](release-notes/v3.1.md), [`release-notes/v3.md`](release-notes/v3.md),
+Release notes: [`release-notes/v4.md`](release-notes/v4.md) (this release),
+[`release-notes/v3.2.1.md`](release-notes/v3.2.1.md), [`release-notes/v3.2.md`](release-notes/v3.2.md),
+[`release-notes/v3.1.md`](release-notes/v3.1.md), [`release-notes/v3.md`](release-notes/v3.md),
 [`release-notes/v2.md`](release-notes/v2.md). `docs/V2-ASSESSMENT.md` records what changed on the
 `v2` branch and why v3 was branched from it.
 
@@ -43,8 +44,19 @@ In the dashboard, create an API key. You are shown the secret exactly once.
 
 | Field | Value |
 | --- | --- |
-| Server | `rtmp://<server>:4001/live` |
-| Stream Key | `<stream-name>?key=<your-api-key>` |
+| Server | `rtmp://<server>:4001/live?key=<your-api-key>` |
+| Stream Key | `<your destination stream key>` |
+| Use authentication | leave **unchecked** |
+
+The API key goes in the **Server** field, so the **Stream Key** field is free to hold the
+destination's own key — the one YouTube gives you. When YouTube rotates it, change it in OBS; you
+do not need to come back to the dashboard.
+
+OBS's "Use authentication" checkbox does not work here, and cannot without extra protocol support:
+RTMP only sends those fields in response to an Adobe/Limelight `authmod` challenge from the server,
+which this server does not issue. Leave it unchecked.
+
+The v1–v3 form, with the key on the stream key as `<stream-name>?key=<api-key>`, is still accepted.
 
 The API key rides along as a query argument on the stream name. This is the same mechanism
 node-media-server itself uses for signed URLs, and every RTMP client that lets you type a stream key
@@ -103,6 +115,9 @@ All optional. Defaults in brackets.
 | `RTMP_APP` [`live`] | Application segment of the ingest URL |
 | `BASE_PATH` | Path a reverse proxy mounts the dashboard under, e.g. `/4000`. Blank = served at the root |
 | `PUBLIC_HOST` | Hostname encoders should use for RTMP, e.g. `stream.example.com`. Blank = auto-detect |
+| `RTMPS_PORT` [0] | Port for `rtmps://` ingest. 0 = off |
+| `RTMPS_KEY` | Path to the TLS private key, read at startup |
+| `RTMPS_CERT` | Path to the TLS certificate chain, read at startup |
 | `DEFAULT_RELAY_EDGE` [`rtmp://a.rtmp.youtube.com/live2`] | Fallback forwarding destination |
 | `DEFAULT_KEY_QUOTA` [2] | API keys a new account may hold |
 | `CREATOR_USERNAME` [`creator`] | First-run only |
@@ -151,5 +166,10 @@ On Windows the bundled `ffmpeg.exe` in the repo root is used automatically.
   ffmpeg reads from loopback, so it is unaffected.
 - Stream names are masked in the dashboard and in logs, because in passthrough mode the stream name
   *is* the destination's stream key.
-- Put the dashboard behind HTTPS (a reverse proxy is fine) and set `SECURE_COOKIES=true`. RTMP itself
-  is unencrypted; use `rtmps://` destinations where the far end supports it.
+- Put the dashboard behind HTTPS (a reverse proxy is fine) and set `SECURE_COOKIES=true`.
+- **Plain RTMP is unencrypted, and from v4 the API key travels on the Server URL**, so anyone on the
+  network path can read it. Configure `RTMPS_PORT`/`RTMPS_KEY`/`RTMPS_CERT` and hand out the
+  `rtmps://` URL instead. Outbound relays can use `rtmps://` destinations too.
+- The Server URL is a secret. Unlike a stream key, OBS displays it in plain text and may include it
+  in logs, so avoid screenshots of the Stream settings page. Rotate a key from the dashboard if it
+  is exposed.

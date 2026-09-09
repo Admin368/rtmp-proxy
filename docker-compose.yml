@@ -7,9 +7,12 @@ services:
       - "4000:4000" # dashboard
       - "4001:4001" # RTMP ingest
       - "4002:4002" # node-media-server HTTP-FLV
+      # - "4443:4443" # RTMPS ingest — uncomment together with the RTMPS_* vars
     volumes:
       - ./media:/app/media
       - rtmp-data:/app/data
+      # Certificates for RTMPS, read-only. Match the paths to RTMPS_KEY / RTMPS_CERT.
+      # - /etc/letsencrypt:/etc/letsencrypt:ro
     environment:
       NODE_ENV: production
       # Accounts, API keys and the cookie signing secret are stored in /app/data/db.json.
@@ -34,6 +37,13 @@ services:
       # Set to "true" when the dashboard is reached over HTTPS only. Leave unset if you also
       # use it directly over plain http on the published port, or logins will not stick.
       SECURE_COOKIES: ${SECURE_COOKIES:-}
+
+      # RTMPS ingest. The API key rides on the Server URL, and plain RTMP sends that in the
+      # clear, so an encrypted endpoint is worth having. To enable: set these three in .env,
+      # uncomment the 4443 port and the certificate mount below.
+      RTMPS_PORT: ${RTMPS_PORT:-}
+      RTMPS_KEY: ${RTMPS_KEY:-}
+      RTMPS_CERT: ${RTMPS_CERT:-}
 
       # Where streams are forwarded when an API key has no destination of its own.
       DEFAULT_RELAY_EDGE: rtmp://a.rtmp.youtube.com/live2

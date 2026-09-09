@@ -44,6 +44,16 @@ export const config = {
   rtmpApp: process.env.RTMP_APP || "live",
 
   /**
+   * RTMPS (RTMP over TLS) ingest. Plain RTMP sends the whole connect handshake in the clear,
+   * including the API key on the Server URL, so anyone on the network path can read it.
+   * Set all three to also listen for rtmps://; 0 or blank leaves it off.
+   * node-media-server reads the certificate once at startup, so renewals need a restart.
+   */
+  rtmpsPort: envInt("RTMPS_PORT", 0),
+  rtmpsKeyPath: (process.env.RTMPS_KEY || "").trim(),
+  rtmpsCertPath: (process.env.RTMPS_CERT || "").trim(),
+
+  /**
    * Path the dashboard is mounted under by a reverse proxy, e.g. "/4000" for an nginx
    *   location /4000/ { proxy_pass http://localhost:4000/; }
    * The trailing slash on proxy_pass strips the prefix before it reaches us, so the app

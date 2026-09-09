@@ -38,7 +38,7 @@ import { describeStreams, findStream, killStream, killStreamsForKey, killStreams
 import type { Role, User } from "../store/types";
 import { stashFlash, takeFlash } from "./flash";
 import { renderDashboard, renderLogin, streamRows } from "./views";
-import { getServerAddresses, ingestHosts, ingestUrl, u } from "./urls";
+import { getServerAddresses, ingestHosts, serverUrlWithKey, u } from "./urls";
 
 export { getServerAddresses };
 
@@ -143,14 +143,14 @@ export function createRouter(): Router {
         destinationUrl: str(req.body?.destinationUrl) || null,
         destinationKey: str(req.body?.destinationKey) || null,
       });
-      const streamName = created.record.destinationKey ? "stream" : "<destination-stream-key>";
       const token = stashFlash({
         kind: "secret",
         message: `API key "${created.record.label}" created.`,
         secret: {
           key: created.secret,
-          ingestUrl: ingestUrl(ingestHosts()[0]),
-          streamKey: `${streamName}?key=${created.secret}`,
+          serverUrl: serverUrlWithKey(ingestHosts()[0], created.secret),
+          streamKey: created.record.destinationKey ? "any name you like" : "<your destination stream key>",
+          streamKeyIsFixed: !!created.record.destinationKey,
         },
       });
       res.redirect(u(`/?m=${token}`));
@@ -178,14 +178,14 @@ export function createRouter(): Router {
     withKey(req, res, { adminMayAct: false }, (key) => {
       const secret = rotateKey(key);
       killStreamsForKey(key.id);
-      const streamName = key.destinationKey ? "stream" : "<destination-stream-key>";
       const token = stashFlash({
         kind: "secret",
         message: `API key "${key.label}" rotated.`,
         secret: {
           key: secret,
-          ingestUrl: ingestUrl(ingestHosts()[0]),
-          streamKey: `${streamName}?key=${secret}`,
+          serverUrl: serverUrlWithKey(ingestHosts()[0], secret),
+          streamKey: key.destinationKey ? "any name you like" : "<your destination stream key>",
+          streamKeyIsFixed: !!key.destinationKey,
         },
       });
       res.redirect(u(`/?m=${token}`));
