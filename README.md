@@ -18,6 +18,8 @@ address.
 - **A monochrome dark dashboard** with one-tap copy fields for the OBS settings, and a layout that
   works on a phone.
 
+**Streaming through this server?** See the [user guide](docs/USER-GUIDE.md).
+
 Release notes: [`release-notes/v4.0.1.md`](release-notes/v4.0.1.md) (this release),
 [`release-notes/v4.md`](release-notes/v4.md),
 [`release-notes/v3.2.1.md`](release-notes/v3.2.1.md), [`release-notes/v3.2.md`](release-notes/v3.2.md),
