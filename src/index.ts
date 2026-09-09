@@ -5,7 +5,8 @@ import { config } from "./config";
 import { startRtmpServer, shutdownRtmp } from "./rtmp/server";
 import { ensureCreatorAccount } from "./services/users";
 import { databasePath, saveSync } from "./store/db";
-import { createRouter, getServerAddresses } from "./web/routes";
+import { createRouter } from "./web/routes";
+import { getServerAddresses, ingestHosts, ingestUrl } from "./web/urls";
 
 function main(): void {
   fs.mkdirSync(config.mediaRoot, { recursive: true });
@@ -20,14 +21,28 @@ function main(): void {
 
   const server = http.createServer(app);
   server.listen(config.webPort, "0.0.0.0", () => {
-    const addresses = getServerAddresses();
     console.log("RTMP proxy is running.");
     console.log(`  accounts database: ${databasePath}`);
-    for (const addr of addresses.length ? addresses : ["localhost"]) {
-      console.log(`  dashboard:     http://${addr}:${config.webPort}`);
-      console.log(`  rtmp ingest:   rtmp://${addr}:${config.rtmpPort}/${config.rtmpApp}`);
+    if (config.basePath) {
+      console.log(`  mounted under:     ${config.basePath} (BASE_PATH)`);
+    }
+    // Discovered interfaces are the container's when containerised, so only claim them as
+    // reachable when PUBLIC_HOST has not told us the address clients actually use.
+    const dashboardHosts = config.publicHost
+      ? [config.publicHost]
+      : getServerAddresses().length
+      ? getServerAddresses()
+      : ["localhost"];
+    for (const host of dashboardHosts) {
+      console.log(`  dashboard:     http://${host}:${config.webPort}${config.basePath}`);
+    }
+    for (const host of ingestHosts()) {
+      console.log(`  rtmp ingest:   ${ingestUrl(host)}`);
     }
     console.log("  stream key:    <stream-name>?key=<api-key>");
+    if (!config.publicHost) {
+      console.log("  (set PUBLIC_HOST to the address encoders should use, e.g. stream.example.com)");
+    }
   });
 
   const shutdown = (signal: string) => {

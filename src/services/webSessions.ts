@@ -53,7 +53,9 @@ export function cookieHeader(token: string): string {
   const maxAge = config.sessionTtlHours * 3600;
   const parts = [
     `${COOKIE_NAME}=${token}`,
-    "Path=/",
+    // Scoped to the mount point, so the session cookie is not sent to other apps
+    // sharing this hostname behind the same reverse proxy.
+    `Path=${config.basePath || "/"}`,
     "HttpOnly",
     "SameSite=Lax",
     `Max-Age=${maxAge}`,
@@ -63,7 +65,7 @@ export function cookieHeader(token: string): string {
 }
 
 export function clearCookieHeader(): string {
-  const parts = [`${COOKIE_NAME}=`, "Path=/", "HttpOnly", "SameSite=Lax", "Max-Age=0"];
+  const parts = [`${COOKIE_NAME}=`, `Path=${config.basePath || "/"}`, "HttpOnly", "SameSite=Lax", "Max-Age=0"];
   if (config.secureCookies) parts.push("Secure");
   return parts.join("; ");
 }

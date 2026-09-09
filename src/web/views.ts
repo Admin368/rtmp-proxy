@@ -10,6 +10,7 @@ import {
   effectiveKeyQuota,
 } from "../services/users";
 import { escapeHtml, html, joinHtml, raw } from "./html";
+import { ingestUrl, u } from "./urls";
 import { styles } from "./styles";
 
 export interface Flash {
@@ -58,7 +59,7 @@ export function renderLogin(options: { error?: string; username?: string } = {})
       <div class="card">
         <div class="body">
           ${options.error ? raw(html`<div class="notice error">${options.error}</div>`) : raw("")}
-          <form method="post" action="/login">
+          <form method="post" action="${u(`/login`)}">
             <label class="field"><span>Username</span>
               <input name="username" autocomplete="username" autofocus required
                      value="${options.username ?? ""}">
@@ -102,7 +103,7 @@ export function renderDashboard(data: DashboardData): string {
         <div class="who">
           <span class="name">${user.username}</span>
           <span class="chip">${user.role}</span>
-          <form class="inline" method="post" action="/logout">
+          <form class="inline" method="post" action="${u(`/logout`)}">
             <button class="ghost small" type="submit">Sign out</button>
           </form>
         </div>
@@ -149,15 +150,12 @@ function flashBanner(flash: Flash | null): string {
 function connectionCard(data: DashboardData): string {
   const addresses = data.serverAddresses.length ? data.serverAddresses : ["<server-address>"];
   const fields = addresses.map((addr) =>
-    copyField(
-      addresses.length > 1 ? `Server (${addr})` : "Server",
-      `rtmp://${addr}:${config.rtmpPort}/${config.rtmpApp}`
-    )
+    copyField(addresses.length > 1 ? `Server (${addr})` : "Server", ingestUrl(addr))
   );
 
   const restart = canRestartServer(data.user)
     ? html`
-        <form class="inline" method="post" action="/server/restart"
+        <form class="inline" method="post" action="${u(`/server/restart`)}"
               onsubmit="return confirm('Restart the server? Every live stream will be dropped.')">
           <button class="small" type="submit">Restart server</button>
         </form>
@@ -228,7 +226,7 @@ export function streamRows(streams: LiveStreamView[]): string {
           <td data-label="Forwarding to">${raw(relayCell(s))}</td>
           <td>
             <div class="actions">
-              <form class="inline" method="post" action="/streams/${s.id}/kill"
+              <form class="inline" method="post" action="${u(`/streams/${s.id}/kill`)}"
                     onsubmit="return confirm('Drop this stream?')">
                 <button class="small danger" type="submit">Kill</button>
               </form>
@@ -265,7 +263,7 @@ function keysCard(data: DashboardData): string {
   const createForm = atLimit
     ? html`<p class="hint">All ${quotaLabel} of your API keys are in use. Delete one, or ask an administrator to raise your quota.</p>`
     : html`
-        <form class="grid" method="post" action="/keys">
+        <form class="grid" method="post" action="${u(`/keys`)}">
           <label class="field"><span>Label</span>
             <input name="label" placeholder="Main PC" maxlength="60">
           </label>
@@ -310,18 +308,18 @@ function keyRow(key: ApiKey, owned: boolean): string {
     : html`<span class="dot on"></span>active`;
 
   const toggle = key.disabled
-    ? html`<form class="inline" method="post" action="/keys/${key.id}/resume"><button class="small" type="submit">Resume</button></form>`
-    : html`<form class="inline" method="post" action="/keys/${key.id}/pause"
+    ? html`<form class="inline" method="post" action="${u(`/keys/${key.id}/resume`)}"><button class="small" type="submit">Resume</button></form>`
+    : html`<form class="inline" method="post" action="${u(`/keys/${key.id}/pause`)}"
              onsubmit="return confirm('Pause this key? Any stream using it is dropped immediately.')">
              <button class="small" type="submit">Pause</button></form>`;
 
   const ownerActions = owned
     ? html`
-        <form class="inline" method="post" action="/keys/${key.id}/rotate"
+        <form class="inline" method="post" action="${u(`/keys/${key.id}/rotate`)}"
               onsubmit="return confirm('Generate a new secret? The current one stops working at once.')">
           <button class="small" type="submit">Rotate</button>
         </form>
-        <form class="inline" method="post" action="/keys/${key.id}/delete"
+        <form class="inline" method="post" action="${u(`/keys/${key.id}/delete`)}"
               onsubmit="return confirm('Delete this key permanently?')">
           <button class="small danger" type="submit">Delete</button>
         </form>
@@ -370,7 +368,7 @@ function usersCard(data: DashboardData): string {
         </div>
       </div>
       <footer>
-        <form class="grid" method="post" action="/users">
+        <form class="grid" method="post" action="${u(`/users`)}">
           <label class="field"><span>Username</span>
             <input name="username" required minlength="3" maxlength="32" placeholder="jordan">
           </label>
@@ -397,7 +395,7 @@ function userRow(target: User, actor: User, manageRoles: boolean): string {
   const roleCell =
     manageRoles && !isCreator
       ? html`
-          <form class="inline" method="post" action="/users/${target.id}/role">
+          <form class="inline" method="post" action="${u(`/users/${target.id}/role`)}">
             <select name="role" onchange="this.form.submit()" aria-label="Role for ${target.username}">
               <option value="user" ${raw(target.role === "user" ? "selected" : "")}>user</option>
               <option value="admin" ${raw(target.role === "admin" ? "selected" : "")}>admin</option>
@@ -409,7 +407,7 @@ function userRow(target: User, actor: User, manageRoles: boolean): string {
   const quotaCell =
     manageRoles && !isCreator
       ? html`
-          <form class="tiny" method="post" action="/users/${target.id}/quota">
+          <form class="tiny" method="post" action="${u(`/users/${target.id}/quota`)}">
             <input name="quota" value="${target.keyQuota ?? ""}" placeholder="${db.settings.defaultKeyQuota}"
                    inputmode="numeric" aria-label="Key quota for ${target.username}">
             <button class="small ghost" type="submit">Set</button>
@@ -422,7 +420,7 @@ function userRow(target: User, actor: User, manageRoles: boolean): string {
       ? html`<span class="dot on"></span>by role`
       : manageRoles
       ? html`
-          <form class="tiny" method="post" action="/users/${target.id}/restart-permission">
+          <form class="tiny" method="post" action="${u(`/users/${target.id}/restart-permission`)}">
             <input type="hidden" name="allowed" value="${target.canRestartServer ? "0" : "1"}">
             <button class="small" type="submit">${target.canRestartServer ? "Revoke" : "Grant"}</button>
           </form>
@@ -432,13 +430,13 @@ function userRow(target: User, actor: User, manageRoles: boolean): string {
   const actions: string[] = [];
   if (!isCreator && !isSelf) {
     actions.push(html`
-      <form class="inline" method="post" action="/users/${target.id}/${target.disabled ? "enable" : "disable"}">
+      <form class="inline" method="post" action="${u(`/users/${target.id}/${target.disabled ? "enable" : "disable"}`)}">
         <button class="small" type="submit">${target.disabled ? "Enable" : "Disable"}</button>
       </form>
     `);
     if (manageRoles) {
       actions.push(html`
-        <form class="inline" method="post" action="/users/${target.id}/delete"
+        <form class="inline" method="post" action="${u(`/users/${target.id}/delete`)}"
               onsubmit="return confirm('Delete this account and all of its API keys?')">
           <button class="small danger" type="submit">Delete</button>
         </form>
@@ -447,7 +445,7 @@ function userRow(target: User, actor: User, manageRoles: boolean): string {
   }
   if (isSelf || manageRoles) {
     actions.push(html`
-      <form class="tiny" method="post" action="/users/${target.id}/password">
+      <form class="tiny" method="post" action="${u(`/users/${target.id}/password`)}">
         <input name="password" type="password" placeholder="new password" minlength="8" required
                aria-label="New password for ${target.username}">
         <button class="small ghost" type="submit">Set</button>
@@ -492,7 +490,7 @@ function allKeysCard(data: DashboardData): string {
               <td data-label="Last used">${key.lastUsedAt ? formatRelative(key.lastUsedAt) : raw(html`<span class="empty">never</span>`)}</td>
               <td>
                 <div class="actions">
-                  <form class="inline" method="post" action="/keys/${key.id}/${key.disabled ? "resume" : "pause"}">
+                  <form class="inline" method="post" action="${u(`/keys/${key.id}/${key.disabled ? "resume" : "pause"}`)}">
                     <button class="small" type="submit">${key.disabled ? "Resume" : "Pause"}</button>
                   </form>
                 </div>
@@ -539,6 +537,7 @@ function metaCard(data: DashboardData): string {
 function pageScript(): string {
   return `<script>
 (function () {
+  var POLL_URL = ${JSON.stringify(u("/api/streams/rows"))};
   // Copy buttons
   document.addEventListener('click', function (e) {
     var btn = e.target.closest && e.target.closest('.copyfield .copy');
@@ -573,7 +572,7 @@ function pageScript(): string {
     if (document.hidden) return;
     var active = document.activeElement;
     if (active && (active.tagName === 'BUTTON' || active.tagName === 'INPUT')) return;
-    fetch('/api/streams/rows', { headers: { Accept: 'application/json' } })
+    fetch(POLL_URL, { headers: { Accept: 'application/json' } })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
         if (!data) return;

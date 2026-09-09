@@ -1,5 +1,4 @@
 import express, { NextFunction, Request, Response, Router } from "express";
-import os from "os";
 import { config } from "../config";
 import {
   createKeyForUser,
@@ -39,6 +38,9 @@ import { describeStreams, findStream, killStream, killStreamsForKey, killStreams
 import type { Role, User } from "../store/types";
 import { stashFlash, takeFlash } from "./flash";
 import { renderDashboard, renderLogin, streamRows } from "./views";
+import { getServerAddresses, ingestHosts, ingestUrl, u } from "./urls";
+
+export { getServerAddresses };
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -47,16 +49,6 @@ declare global {
       user?: User;
     }
   }
-}
-
-export function getServerAddresses(): string[] {
-  const addresses: string[] = [];
-  for (const iface of Object.values(os.networkInterfaces())) {
-    for (const addr of iface ?? []) {
-      if (addr.family === "IPv4" && !addr.internal) addresses.push(addr.address);
-    }
-  }
-  return addresses;
 }
 
 export function createRouter(): Router {
@@ -72,7 +64,7 @@ export function createRouter(): Router {
   });
 
   router.get("/login", (req, res) => {
-    if (req.user) return res.redirect("/");
+    if (req.user) return res.redirect(u("/"));
     res.type("html").send(renderLogin());
   });
 
@@ -85,12 +77,12 @@ export function createRouter(): Router {
       return;
     }
     res.setHeader("Set-Cookie", cookieHeader(issueToken(user)));
-    res.redirect("/");
+    res.redirect(u("/"));
   });
 
   router.post("/logout", (_req, res) => {
     res.setHeader("Set-Cookie", clearCookieHeader());
-    res.redirect("/login");
+    res.redirect(u("/login"));
   });
 
   // -------------------------------------------------------------- dashboard
@@ -106,7 +98,7 @@ export function createRouter(): Router {
         keys: listKeysForUser(user.id),
         users: canManageUsers(user) ? listUsers() : [],
         allKeys: everything ? listKeys() : [],
-        serverAddresses: getServerAddresses(),
+        serverAddresses: ingestHosts(),
         uptimeSeconds: process.uptime(),
       })
     );
@@ -151,18 +143,17 @@ export function createRouter(): Router {
         destinationUrl: str(req.body?.destinationUrl) || null,
         destinationKey: str(req.body?.destinationKey) || null,
       });
-      const address = getServerAddresses()[0] ?? "<server-address>";
       const streamName = created.record.destinationKey ? "stream" : "<destination-stream-key>";
       const token = stashFlash({
         kind: "secret",
         message: `API key "${created.record.label}" created.`,
         secret: {
           key: created.secret,
-          ingestUrl: `rtmp://${address}:${config.rtmpPort}/${config.rtmpApp}`,
+          ingestUrl: ingestUrl(ingestHosts()[0]),
           streamKey: `${streamName}?key=${created.secret}`,
         },
       });
-      res.redirect(`/?m=${token}`);
+      res.redirect(u(`/?m=${token}`));
     } catch (err) {
       done(res, "error", (err as Error).message);
     }
@@ -187,18 +178,17 @@ export function createRouter(): Router {
     withKey(req, res, { adminMayAct: false }, (key) => {
       const secret = rotateKey(key);
       killStreamsForKey(key.id);
-      const address = getServerAddresses()[0] ?? "<server-address>";
       const streamName = key.destinationKey ? "stream" : "<destination-stream-key>";
       const token = stashFlash({
         kind: "secret",
         message: `API key "${key.label}" rotated.`,
         secret: {
           key: secret,
-          ingestUrl: `rtmp://${address}:${config.rtmpPort}/${config.rtmpApp}`,
+          ingestUrl: ingestUrl(ingestHosts()[0]),
           streamKey: `${streamName}?key=${secret}`,
         },
       });
-      res.redirect(`/?m=${token}`);
+      res.redirect(u(`/?m=${token}`));
     });
   });
 
@@ -305,7 +295,7 @@ export function createRouter(): Router {
       kind: "ok",
       message: "Restarting. This page will come back in a few seconds.",
     });
-    res.redirect(`/?m=${token}`);
+    res.redirect(u(`/?m=${token}`));
     requestRestart(user.username);
   });
 
@@ -343,7 +333,7 @@ function rejectCrossSiteWrites(req: Request, res: Response, next: NextFunction):
 
 function requireAuth(req: Request, res: Response, next: NextFunction): void {
   if (req.user) return next();
-  if (req.method === "GET") return void res.redirect("/login");
+  if (req.method === "GET") return void res.redirect(u("/login"));
   res.status(401).send("Sign in first.");
 }
 
@@ -352,7 +342,7 @@ function str(value: unknown): string {
 }
 
 function done(res: Response, kind: "ok" | "error", message: string): void {
-  res.redirect(`/?m=${stashFlash({ kind, message })}`);
+  res.redirect(u(`/?m=${stashFlash({ kind, message })}`));
 }
 
 function withKey(

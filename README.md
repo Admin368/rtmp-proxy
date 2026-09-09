@@ -1,4 +1,4 @@
-# RTMP Proxy (v3.2)
+# RTMP Proxy (v3.2.1)
 
 An authenticated RTMP relay in a Docker container. Point OBS (or anything that speaks RTMP) at this
 server, and it forwards the stream on to YouTube — or to any other RTMP ingest you configure.
@@ -18,8 +18,8 @@ address.
 - **A monochrome dark dashboard** with one-tap copy fields for the OBS settings, and a layout that
   works on a phone.
 
-Release notes: [`release-notes/v3.2.md`](release-notes/v3.2.md) (this release),
-[`release-notes/v3.1.md`](release-notes/v3.1.md), [`release-notes/v3.md`](release-notes/v3.md),
+Release notes: [`release-notes/v3.2.1.md`](release-notes/v3.2.1.md) (this release),
+[`release-notes/v3.2.md`](release-notes/v3.2.md), [`release-notes/v3.1.md`](release-notes/v3.1.md), [`release-notes/v3.md`](release-notes/v3.md),
 [`release-notes/v2.md`](release-notes/v2.md). `docs/V2-ASSESSMENT.md` records what changed on the
 `v2` branch and why v3 was branched from it.
 
@@ -101,6 +101,8 @@ All optional. Defaults in brackets.
 | `MEDIA_HTTP_PORT` [4002] | node-media-server's HTTP-FLV port |
 | `DATA_DIR` [`/app/data`] | Where `db.json` lives — **mount this** |
 | `RTMP_APP` [`live`] | Application segment of the ingest URL |
+| `BASE_PATH` | Path a reverse proxy mounts the dashboard under, e.g. `/4000`. Blank = served at the root |
+| `PUBLIC_HOST` | Hostname encoders should use for RTMP, e.g. `stream.example.com`. Blank = auto-detect |
 | `DEFAULT_RELAY_EDGE` [`rtmp://a.rtmp.youtube.com/live2`] | Fallback forwarding destination |
 | `DEFAULT_KEY_QUOTA` [2] | API keys a new account may hold |
 | `CREATOR_USERNAME` [`creator`] | First-run only |

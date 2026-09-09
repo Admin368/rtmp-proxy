@@ -14,6 +14,16 @@ function envBool(name: string, fallback: boolean): boolean {
   return /^(1|true|yes|on)$/i.test(raw);
 }
 
+/**
+ * Normalises a mount point into "" or "/prefix" — no trailing slash, one leading slash.
+ * "/4000/", "4000" and "/4000" all become "/4000".
+ */
+function normaliseBasePath(raw: string | undefined): string {
+  const trimmed = (raw ?? "").trim().replace(/\/+$/, "");
+  if (!trimmed || trimmed === "/") return "";
+  return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+}
+
 const isWindows = os.platform() === "win32";
 
 export const config = {
@@ -32,6 +42,22 @@ export const config = {
 
   /** RTMP application name publishers use: rtmp://host:4001/<app>/<stream> */
   rtmpApp: process.env.RTMP_APP || "live",
+
+  /**
+   * Path the dashboard is mounted under by a reverse proxy, e.g. "/4000" for an nginx
+   *   location /4000/ { proxy_pass http://localhost:4000/; }
+   * The trailing slash on proxy_pass strips the prefix before it reaches us, so the app
+   * would otherwise emit root-absolute links ("/login") that escape the mount point.
+   * Empty means mounted at the root, which is the default.
+   */
+  basePath: normaliseBasePath(process.env.BASE_PATH),
+
+  /**
+   * Hostname encoders should use to reach the RTMP port, e.g. "stream.example.com".
+   * Needed because the interfaces this process can see are the container's, not the ones
+   * clients can route to. Empty falls back to discovering local addresses.
+   */
+  publicHost: (process.env.PUBLIC_HOST || "").trim().replace(/^\w+:\/\//, "").replace(/\/.*$/, ""),
 
   defaultKeyQuota: envInt("DEFAULT_KEY_QUOTA", 2),
 
