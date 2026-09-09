@@ -3,3 +3,5 @@ data
 dist
 *.log
 .env
+# Per-deployment compose additions (extra ports, certificate mounts).
+docker-compose.override.yml
