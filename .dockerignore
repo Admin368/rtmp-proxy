@@ -1,5 +1,9 @@
 node_modules
+dist
+data
 *.log
 .git
 .dockerignore
-tsconfig.json
+docs
+release-notes
+ffmpeg.exe

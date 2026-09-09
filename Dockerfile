@@ -1,24 +1,41 @@
-# Use an official Node.js runtime as the base image
-# FROM node:16
-FROM node:20
-# Set the working directory in the container to /app
+# Build stage
+FROM node:24-alpine AS builder
+
+# pnpm ships with the image via corepack; the version comes from package.json's packageManager field.
+RUN corepack enable
+
 WORKDIR /app
 
-# Copy package.json and package-lock.json (if available)
-COPY package*.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
 
-# Install dependencies
-RUN yarn install
+COPY tsconfig.json .
+COPY src ./src
+RUN pnpm build
 
-# Copy the dist folder containing the pre-built index.js and the media folder
-COPY dist/ ./dist/
-COPY media/ ./media/
+# Production stage
+FROM node:24-alpine
 
-# Install FFmpeg on Ubuntu
-RUN apt-get update && apt-get install -y ffmpeg
+RUN apk add --no-cache ffmpeg
+RUN corepack enable
 
-# Ensure that ffmpeg is installed at /usr/bin/ffmpeg (the path used in index.ts)
-RUN which ffmpeg
+WORKDIR /app
 
-# Set the default command to run the dist/index.js file
+COPY --from=builder /app/dist ./dist
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY media ./media
+
+RUN pnpm install --prod --frozen-lockfile && \
+    pnpm store prune
+
+# Accounts and API keys live here. Mount it, or every restart forgets them.
+RUN mkdir -p /app/data
+VOLUME ["/app/data"]
+ENV DATA_DIR=/app/data
+
+EXPOSE 4000 4001 4002
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD node -e "require('http').get('http://127.0.0.1:'+(process.env.WEB_PORT||4000)+'/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
+
 CMD ["node", "dist/index.js"]
