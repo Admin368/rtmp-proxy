@@ -42,7 +42,13 @@ export const config = {
    * Defaults to YouTube over TLS: the outbound leg carries the destination's stream key, and
    * plain rtmp:// would send it in the clear across the public internet.
    */
-  defaultRelayEdge: process.env.DEFAULT_RELAY_EDGE || "rtmps://a.rtmp.youtube.com/live2",
+  /*
+   * Note the hostname: YouTube's RTMPS ingest is a.rtmpS.youtube.com, not a.rtmp.youtube.com.
+   * Port 443 on a.rtmp.youtube.com serves a certificate covering only rtmps.youtube.com and
+   * *.rtmps.youtube.com, so the obvious "add an s to the scheme" URL fails hostname
+   * verification and the relay never connects.
+   */
+  defaultRelayEdge: process.env.DEFAULT_RELAY_EDGE || "rtmps://a.rtmps.youtube.com/live2",
 
   /** RTMP application name publishers use: rtmp://host:4001/<app>/<stream> */
   rtmpApp: process.env.RTMP_APP || "live",

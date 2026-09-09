@@ -119,7 +119,7 @@ All optional. Defaults in brackets.
 | `RTMPS_PORT` [0] | Port for `rtmps://` ingest. 0 = off |
 | `RTMPS_KEY` | Path to the TLS private key, read at startup |
 | `RTMPS_CERT` | Path to the TLS certificate chain, read at startup |
-| `DEFAULT_RELAY_EDGE` [`rtmps://a.rtmp.youtube.com/live2`] | Fallback forwarding destination. Set explicitly to override the value stored in `db.json` |
+| `DEFAULT_RELAY_EDGE` [`rtmps://a.rtmps.youtube.com/live2`] | Fallback forwarding destination. Set explicitly to override the value stored in `db.json` |
 | `DEFAULT_KEY_QUOTA` [2] | API keys a new account may hold |
 | `CREATOR_USERNAME` [`creator`] | First-run only |
 | `CREATOR_PASSWORD` | First-run only; generated and logged if unset |

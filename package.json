@@ -1,6 +1,6 @@
 {
   "name": "rtmp-proxy",
-  "version": "4.0.1",
+  "version": "4.0.2",
   "description": "Authenticated RTMP relay with accounts, roles and API keys",
   "main": "dist/index.js",
   "scripts": {
