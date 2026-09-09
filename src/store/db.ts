@@ -36,10 +36,27 @@ function load(): Database {
   }
 
   const base = emptyDatabase();
+  // Stored settings normally win, because they can be changed at runtime. An environment
+  // variable given explicitly wins over the stored value, though — otherwise changing
+  // DEFAULT_RELAY_EDGE on an existing deployment does nothing and says nothing about why.
+  const settings = { ...base.settings, ...(parsed.settings ?? {}) };
+  if (config.explicitlySet.defaultRelayEdge) {
+    if (settings.defaultRelayEdge !== config.defaultRelayEdge) {
+      console.log(
+        `[db] DEFAULT_RELAY_EDGE overrides the stored default: ` +
+          `${settings.defaultRelayEdge} -> ${config.defaultRelayEdge}`
+      );
+    }
+    settings.defaultRelayEdge = config.defaultRelayEdge;
+  }
+  if (config.explicitlySet.defaultKeyQuota) {
+    settings.defaultKeyQuota = config.defaultKeyQuota;
+  }
+
   return {
     version: DB_VERSION,
     secret: config.sessionSecret || parsed.secret || base.secret,
-    settings: { ...base.settings, ...(parsed.settings ?? {}) },
+    settings,
     users: parsed.users ?? [],
     apiKeys: parsed.apiKeys ?? [],
   };

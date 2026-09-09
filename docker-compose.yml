@@ -46,7 +46,9 @@ services:
       RTMPS_CERT: ${RTMPS_CERT:-}
 
       # Where streams are forwarded when an API key has no destination of its own.
-      DEFAULT_RELAY_EDGE: rtmp://a.rtmp.youtube.com/live2
+      # rtmps by default: this leg carries the destination's stream key across the public
+      # internet, and plain rtmp would send it in the clear.
+      DEFAULT_RELAY_EDGE: ${DEFAULT_RELAY_EDGE:-rtmps://a.rtmp.youtube.com/live2}
 
       # How many API keys a new account may hold. The creator can override this per account.
       DEFAULT_KEY_QUOTA: "2"

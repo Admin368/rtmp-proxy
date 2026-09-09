@@ -37,8 +37,12 @@ export const config = {
 
   ffmpegPath: process.env.FFMPEG_PATH || (isWindows ? "./ffmpeg.exe" : "/usr/bin/ffmpeg"),
 
-  /** Where a stream is forwarded when an API key does not name its own destination. */
-  defaultRelayEdge: process.env.DEFAULT_RELAY_EDGE || "rtmp://a.rtmp.youtube.com/live2",
+  /**
+   * Where a stream is forwarded when an API key does not name its own destination.
+   * Defaults to YouTube over TLS: the outbound leg carries the destination's stream key, and
+   * plain rtmp:// would send it in the clear across the public internet.
+   */
+  defaultRelayEdge: process.env.DEFAULT_RELAY_EDGE || "rtmps://a.rtmp.youtube.com/live2",
 
   /** RTMP application name publishers use: rtmp://host:4001/<app>/<stream> */
   rtmpApp: process.env.RTMP_APP || "live",
@@ -86,6 +90,23 @@ export const config = {
 
   /** How often the live-stream registry is reconciled against real RTMP sessions, in ms. */
   sessionSweepIntervalMs: envInt("SESSION_SWEEP_INTERVAL_MS", 5000),
+
+  /**
+   * Which of the persisted settings were given explicitly in the environment.
+   *
+   * settings.* is written to db.json on first run and then read back in preference to the
+   * environment, so without this an operator changing DEFAULT_RELAY_EDGE on an existing
+   * deployment would see no effect at all and no explanation why.
+   */
+  explicitlySet: {
+    defaultRelayEdge: isProvided("DEFAULT_RELAY_EDGE"),
+    defaultKeyQuota: isProvided("DEFAULT_KEY_QUOTA"),
+  },
 } as const;
+
+function isProvided(name: string): boolean {
+  const raw = process.env[name];
+  return typeof raw === "string" && raw.trim() !== "";
+}
 
 export type AppConfig = typeof config;

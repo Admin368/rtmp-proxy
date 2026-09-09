@@ -1,4 +1,4 @@
-# RTMP Proxy (v4)
+# RTMP Proxy (v4.0.1)
 
 An authenticated RTMP relay in a Docker container. Point OBS (or anything that speaks RTMP) at this
 server, and it forwards the stream on to YouTube — or to any other RTMP ingest you configure.
@@ -18,7 +18,8 @@ address.
 - **A monochrome dark dashboard** with one-tap copy fields for the OBS settings, and a layout that
   works on a phone.
 
-Release notes: [`release-notes/v4.md`](release-notes/v4.md) (this release),
+Release notes: [`release-notes/v4.0.1.md`](release-notes/v4.0.1.md) (this release),
+[`release-notes/v4.md`](release-notes/v4.md),
 [`release-notes/v3.2.1.md`](release-notes/v3.2.1.md), [`release-notes/v3.2.md`](release-notes/v3.2.md),
 [`release-notes/v3.1.md`](release-notes/v3.1.md), [`release-notes/v3.md`](release-notes/v3.md),
 [`release-notes/v2.md`](release-notes/v2.md). `docs/V2-ASSESSMENT.md` records what changed on the
@@ -118,7 +119,7 @@ All optional. Defaults in brackets.
 | `RTMPS_PORT` [0] | Port for `rtmps://` ingest. 0 = off |
 | `RTMPS_KEY` | Path to the TLS private key, read at startup |
 | `RTMPS_CERT` | Path to the TLS certificate chain, read at startup |
-| `DEFAULT_RELAY_EDGE` [`rtmp://a.rtmp.youtube.com/live2`] | Fallback forwarding destination |
+| `DEFAULT_RELAY_EDGE` [`rtmps://a.rtmp.youtube.com/live2`] | Fallback forwarding destination. Set explicitly to override the value stored in `db.json` |
 | `DEFAULT_KEY_QUOTA` [2] | API keys a new account may hold |
 | `CREATOR_USERNAME` [`creator`] | First-run only |
 | `CREATOR_PASSWORD` | First-run only; generated and logged if unset |
