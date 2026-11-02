@@ -58,9 +58,10 @@ maravian-photo-uploader and the Maravian fulfilment server. Scope every command 
   `docker rm`/`rmi` sweep. Other people's containers are on this daemon.
 - **Never** `docker compose down -v`.
 - **Do not touch nginx** or any other service's config.
-- Port **4001** (RTMP ingest) is published on every interface (IPv4 and IPv6), and so are 4000 and 4002 unless `.env`
-  sets `HTTP_BIND_ADDR=127.0.0.1` (nginx proxies `/4000/` and `/4002/` locally). Docker-published
-  ports bypass ufw. A broken deploy is publicly broken, so verify before walking away.
+- Port **4001** (RTMP ingest) is published on every interface (IPv4 and IPv6), and so are
+  4000 and 4002 unless `.env` sets `HTTP_BIND_ADDR=127.0.0.1` (nginx proxies `/4000/` and
+  `/4002/` locally). Docker-published ports bypass ufw. A broken deploy is publicly broken, so
+  verify before walking away.
 - Watchtower runs with `--label-enable` and ignores these containers; they only change when you
   deploy.
 
@@ -70,6 +71,10 @@ running `a189e12` on branch **`v2`**.
 ---
 
 ## 3. Before you deploy anything
+
+> **Resolved (2026-11).** mv4 tracks `github.com/Admin368/rtmp-proxy.git`, which now has
+> `main` (containing `v4`), and §4 deploys `main`. The rest of this section is the historical
+> v2 → v3.2 handoff, kept for context.
 
 The obvious plan — "ssh in, `git pull`, rebuild" — **does not work here**, for two independent
 reasons. Both need sorting before anything else.
@@ -148,7 +153,8 @@ stage, so the first build after this jump will be slow and will pull new base la
 export SSH_AUTH_SOCK=/tmp/mwc-agent.sock && ssh -o BatchMode=yes mv4 'cd /root/docker/rtmp-proxy && docker compose ps && docker compose logs --tail=60'
 ```
 
-Expect the container `Up` with a fresh `CREATED` time and ports 4000–4002 bound. Then confirm
+Expect the container `Up` with a fresh `CREATED` time and ports 4000–4002 bound (4000 and 4002
+on `127.0.0.1` when `HTTP_BIND_ADDR=127.0.0.1` is set — that is correct, not a failure). Then confirm
 ffmpeg actually exists in the new image at the path the code expects:
 
 ```bash

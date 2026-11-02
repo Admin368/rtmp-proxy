@@ -34,7 +34,7 @@ services:
       # file stays generic. See .env.example.
       #
       # BASE_PATH: the path a reverse proxy mounts the dashboard under, e.g. /4000 for
-      #   nginx `location /4000/ { proxy_pass http://localhost:4000/; }`. Without it every
+      #   nginx `location /4000/ { proxy_pass http://127.0.0.1:4000/; }`. Without it every
       #   link and redirect the app emits escapes the mount point.
       # PUBLIC_HOST: the hostname encoders should use for RTMP. Without it the dashboard
       #   advertises the container's own IP, which nobody outside Docker can reach.
