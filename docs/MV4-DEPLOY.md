@@ -58,7 +58,7 @@ maravian-photo-uploader and the Maravian fulfilment server. Scope every command 
   `docker rm`/`rmi` sweep. Other people's containers are on this daemon.
 - **Never** `docker compose down -v`.
 - **Do not touch nginx** or any other service's config.
-- Port **4001** (RTMP ingest) is published on 0.0.0.0, and so are 4000 and 4002 unless `.env`
+- Port **4001** (RTMP ingest) is published on every interface (IPv4 and IPv6), and so are 4000 and 4002 unless `.env`
   sets `HTTP_BIND_ADDR=127.0.0.1` (nginx proxies `/4000/` and `/4002/` locally). Docker-published
   ports bypass ufw. A broken deploy is publicly broken, so verify before walking away.
 - Watchtower runs with `--label-enable` and ignores these containers; they only change when you
@@ -123,7 +123,7 @@ in a meaningful way.
 Once the branch is actually reachable from the server:
 
 ```bash
-export SSH_AUTH_SOCK=/tmp/mwc-agent.sock && ssh -o BatchMode=yes mv4 'cd /root/docker/rtmp-proxy && git fetch --all && git checkout v3.2 && git pull && git log --oneline -1'
+export SSH_AUTH_SOCK=/tmp/mwc-agent.sock && ssh -o BatchMode=yes mv4 'cd /root/docker/rtmp-proxy && git fetch --all && git checkout main && git pull --ff-only && git log --oneline -1'
 ```
 
 Then rebuild. **`--build` is not optional** — `docker compose up -d` alone will happily restart
@@ -193,8 +193,8 @@ ffmpeg process, not running tests.
 
 ## 7. Rolling back
 
-The old image is still on the host. Fastest route back. Branches before this change ignore
-`HTTP_BIND_ADDR`, so rolling back publishes 4000 and 4002 on every interface again:
+The old image is still on the host. Fastest route back (branches before `HTTP_BIND_ADDR` ignore
+it, so rolling back publishes 4000 and 4002 on every interface again):
 
 ```bash
 export SSH_AUTH_SOCK=/tmp/mwc-agent.sock && ssh -o BatchMode=yes mv4 'cd /root/docker/rtmp-proxy && git checkout v2 && docker compose up -d --build'
