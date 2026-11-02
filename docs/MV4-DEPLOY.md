@@ -58,8 +58,9 @@ maravian-photo-uploader and the Maravian fulfilment server. Scope every command 
   `docker rm`/`rmi` sweep. Other people's containers are on this daemon.
 - **Never** `docker compose down -v`.
 - **Do not touch nginx** or any other service's config.
-- Ports **4000–4002 are published on 0.0.0.0** — this service is reachable from the internet.
-  A broken deploy is publicly broken, so verify before walking away.
+- Port **4001** (RTMP ingest) is published on 0.0.0.0, and so are 4000 and 4002 unless `.env`
+  sets `HTTP_BIND_ADDR=127.0.0.1` (nginx proxies `/4000/` and `/4002/` locally). Docker-published
+  ports bypass ufw. A broken deploy is publicly broken, so verify before walking away.
 - Watchtower runs with `--label-enable` and ignores these containers; they only change when you
   deploy.
 
@@ -126,10 +127,12 @@ export SSH_AUTH_SOCK=/tmp/mwc-agent.sock && ssh -o BatchMode=yes mv4 'cd /root/d
 ```
 
 Then rebuild. **`--build` is not optional** — `docker compose up -d` alone will happily restart
-the 9-month-old image and look like it worked:
+the 9-month-old image and look like it worked. **`--pull` matters too**: without it Docker reuses
+the cached `node:24-alpine` base, so Node security releases (e.g. CVE-2026-111497, fixed in
+24.22.1) never reach the container:
 
 ```bash
-export SSH_AUTH_SOCK=/tmp/mwc-agent.sock && ssh -o BatchMode=yes mv4 'cd /root/docker/rtmp-proxy && docker compose up -d --build'
+export SSH_AUTH_SOCK=/tmp/mwc-agent.sock && ssh -o BatchMode=yes mv4 'cd /root/docker/rtmp-proxy && docker compose build --pull && docker compose up -d && docker compose exec rtmp-proxy node -v'
 ```
 
 The Dockerfile is a multi-stage `node:24-alpine` build that `apk add`s ffmpeg into the runtime

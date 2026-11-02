@@ -4,9 +4,12 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "4000:4000" # dashboard
+      # HTTP_BIND_ADDR=127.0.0.1 keeps the dashboard and HTTP-FLV off the public
+      # interface when a reverse proxy on the same host fronts them. Docker-published
+      # ports bypass host firewalls such as ufw. RTMP ingest stays public for encoders.
+      - "${HTTP_BIND_ADDR:-0.0.0.0}:4000:4000" # dashboard
       - "4001:4001" # RTMP ingest
-      - "4002:4002" # node-media-server HTTP-FLV
+      - "${HTTP_BIND_ADDR:-0.0.0.0}:4002:4002" # node-media-server HTTP-FLV
       # - "4443:4443" # RTMPS ingest — uncomment together with the RTMPS_* vars
     volumes:
       - ./media:/app/media

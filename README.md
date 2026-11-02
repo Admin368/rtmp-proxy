@@ -30,7 +30,7 @@ Release notes: [`release-notes/v4.0.1.md`](release-notes/v4.0.1.md) (this releas
 ## Quick start
 
 ```bash
-docker compose up -d --build
+docker compose up -d --build --pull always
 docker compose logs rtmp-proxy | head -20   # prints the generated creator password once
 ```
 
