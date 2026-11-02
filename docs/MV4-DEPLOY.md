@@ -127,13 +127,15 @@ export SSH_AUTH_SOCK=/tmp/mwc-agent.sock && ssh -o BatchMode=yes mv4 'cd /root/d
 ```
 
 Then rebuild. **`--build` is not optional** — `docker compose up -d` alone will happily restart
-the 9-month-old image and look like it worked. **`--pull` matters too**: without it Docker reuses
-the cached `node:24-alpine` base, so Node security releases (e.g. CVE-2026-111497, fixed in
-24.22.1) never reach the container:
+the 9-month-old image and look like it worked. The compose file sets `build.pull: true`, so the
+build also re-pulls `node:24-alpine` and Node security releases (e.g. CVE-2026-111497, fixed in
+24.22.1) reach the container. Check the Node version and which address each port is bound to:
 
 ```bash
-export SSH_AUTH_SOCK=/tmp/mwc-agent.sock && ssh -o BatchMode=yes mv4 'cd /root/docker/rtmp-proxy && docker compose build --pull && docker compose up -d && docker compose exec rtmp-proxy node -v'
+export SSH_AUTH_SOCK=/tmp/mwc-agent.sock && ssh -o BatchMode=yes mv4 'cd /root/docker/rtmp-proxy && docker compose up -d --build && docker compose exec -T rtmp-proxy node -v && docker compose port rtmp-proxy 4000 && docker compose port rtmp-proxy 4001'
 ```
+
+With `HTTP_BIND_ADDR=127.0.0.1` in `.env`, expect `127.0.0.1:4000` and `0.0.0.0:4001`.
 
 The Dockerfile is a multi-stage `node:24-alpine` build that `apk add`s ffmpeg into the runtime
 stage, so the first build after this jump will be slow and will pull new base layers.
@@ -191,7 +193,8 @@ ffmpeg process, not running tests.
 
 ## 7. Rolling back
 
-The old image is still on the host. Fastest route back:
+The old image is still on the host. Fastest route back. Branches before this change ignore
+`HTTP_BIND_ADDR`, so rolling back publishes 4000 and 4002 on every interface again:
 
 ```bash
 export SSH_AUTH_SOCK=/tmp/mwc-agent.sock && ssh -o BatchMode=yes mv4 'cd /root/docker/rtmp-proxy && git checkout v2 && docker compose up -d --build'
