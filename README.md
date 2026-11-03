@@ -30,7 +30,7 @@ Release notes: [`release-notes/v4.0.1.md`](release-notes/v4.0.1.md) (this releas
 ## Quick start
 
 ```bash
-docker compose up -d --build
+docker compose up -d --build   # build.pull re-pulls the Node base image every time
 docker compose logs rtmp-proxy | head -20   # prints the generated creator password once
 ```
 
@@ -151,7 +151,9 @@ database to run.
 | 4001 | RTMP ingest (this is the one you point OBS at) |
 | 4002 | node-media-server HTTP-FLV |
 
-Only 4000 and 4001 need to be reachable in a normal deployment.
+Only 4000 and 4001 need to be reachable in a normal deployment. Behind a reverse proxy on the same
+host, set `HTTP_BIND_ADDR=127.0.0.1` in `.env` so 4000 and 4002 are published on loopback only
+(Docker-published ports bypass host firewalls such as ufw).
 
 ## Local development
 
